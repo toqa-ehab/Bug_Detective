@@ -114,7 +114,7 @@ Returns `status`, `original_execution`, `bug_report`, `reproduction_test`, `repr
 
 <!-- Add your screenshots to a `screenshots/` folder with these names -->
 
-![Bug Detective UI: a successful investigation](screenshots/success.png)
+![Bug Detective UI: a successful investigation](demo.png)
 
 ---
 
