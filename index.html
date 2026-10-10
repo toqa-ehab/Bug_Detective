@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bug Detective</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Fira+Code:wght@400;500&family=Figtree:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #e9edf4;
+        --panel: #f8f9fc;
+        --ink: #18212f;
+        --muted: #5d6b82;
+        --line: #cdd5e2;
+        --accent: #2d46e6;
+        --accent-ink: #fff;
+        --pass: #0c8f6c;
+        --pass-bg: #dcf3ea;
+        --fail: #c8283f;
+        --fail-bg: #fbe1e5;
+        --warn: #a96a00;
+        --warn-bg: #fcefd1;
+        --code-bg: #fff;
+        --add: #dcf3ea;
+        --del: #fbe1e5;
+        --hl: #fff1b8;
+        --f-head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+        --f-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+        --f-code: "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+      }
+      :root:not([data-theme="light"]) {
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #10141d;
+          --panel: #181e2b;
+          --ink: #e6ebf5;
+          --muted: #93a0b8;
+          --line: #2b3447;
+          --accent: #7d92ff;
+          --accent-ink: #0b1020;
+          --pass: #4fd1a5;
+          --pass-bg: #10332b;
+          --fail: #ff7b8e;
+          --fail-bg: #3a1820;
+          --warn: #f0b24a;
+          --warn-bg: #3a2c0f;
+          --code-bg: #121723;
+          --add: #10332b;
+          --del: #3a1820;
+          --hl: #4a3f12;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #10141d;
+        --panel: #181e2b;
+        --ink: #e6ebf5;
+        --muted: #93a0b8;
+        --line: #2b3447;
+        --accent: #7d92ff;
+        --accent-ink: #0b1020;
+        --pass: #4fd1a5;
+        --pass-bg: #10332b;
+        --fail: #ff7b8e;
+        --fail-bg: #3a1820;
+        --warn: #f0b24a;
+        --warn-bg: #3a2c0f;
+        --code-bg: #121723;
+        --add: #10332b;
+        --del: #3a1820;
+        --hl: #4a3f12;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.55 var(--f-body);
+        min-height: 100vh;
+      }
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 28px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        flex-wrap: wrap;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: auto;
+      }
+      .brand svg {
+        width: 30px;
+        height: 30px;
+      }
+      .brand h1 {
+        font: 700 22px/1 var(--f-head);
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .conn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .dot.ok {
+        background: var(--pass);
+      }
+      .dot.bad {
+        background: var(--fail);
+      }
+      .conn input {
+        width: 260px;
+        max-width: 100%;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--code-bg);
+        font: 13px var(--f-code);
+      }
+      .icon-btn {
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .icon-btn:hover {
+        color: var(--ink);
+        border-color: var(--muted);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(320px, 5fr) 7fr;
+        gap: 20px;
+        padding: 20px 28px 40px;
+        align-items: start;
+      }
+      @media (max-width: 980px) {
+        main {
+          grid-template-columns: 1fr;
+          padding: 16px;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .panel-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .panel-head h2 {
+        font: 700 16px var(--f-head);
+        margin: 0;
+        margin-right: auto;
+      }
+      .sel {
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--code-bg);
+        font-size: 13px;
+      }
+
+      .editor {
+        position: relative;
+        display: flex;
+        background: var(--code-bg);
+        border-radius: 0 0 10px 10px;
+        overflow: hidden;
+      }
+      .gutter {
+        padding: 14px 10px 14px 14px;
+        text-align: right;
+        color: var(--muted);
+        font: 13px/1.6 var(--f-code);
+        user-select: none;
+        border-right: 1px solid var(--line);
+        overflow: hidden;
+        white-space: pre;
+        min-width: 44px;
+      }
+      #code {
+        flex: 1;
+        min-height: 360px;
+        height: 52vh;
+        resize: vertical;
+        border: 0;
+        background: transparent;
+        padding: 14px;
+        font: 13px/1.6 var(--f-code);
+        tab-size: 4;
+        white-space: pre;
+        overflow: auto;
+        outline: none;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: transparent;
+        padding: 8px 14px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn:hover {
+        border-color: var(--muted);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+        padding: 9px 20px;
+      }
+      .btn.primary:hover {
+        filter: brightness(1.08);
+      }
+      .btn:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+      .hint {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-left: auto;
+      }
+
+      /* results */
+      #results {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .empty {
+        padding: 44px 28px;
+        text-align: center;
+        color: var(--muted);
+      }
+      .empty h3 {
+        font: 700 18px var(--f-head);
+        color: var(--ink);
+        margin: 0 0 6px;
+      }
+      .banner {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        padding: 16px 18px;
+        border-radius: 10px;
+        border: 1px solid;
+      }
+      .banner.pass {
+        background: var(--pass-bg);
+        border-color: var(--pass);
+        color: var(--pass);
+      }
+      .banner.fail {
+        background: var(--fail-bg);
+        border-color: var(--fail);
+        color: var(--fail);
+      }
+      .banner.info {
+        background: var(--warn-bg);
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      .banner strong {
+        font: 700 18px var(--f-head);
+        display: block;
+      }
+      .banner span {
+        color: var(--ink);
+        font-size: 14px;
+      }
+      .banner .tools {
+        margin-left: auto;
+        display: flex;
+        gap: 8px;
+      }
+      .banner .btn {
+        color: var(--ink);
+        background: var(--panel);
+        font-size: 13px;
+        padding: 6px 10px;
+      }
+
+      .track {
+        display: flex;
+        gap: 0;
+        padding: 14px 16px;
+        overflow-x: auto;
+      }
+      .step {
+        flex: 1;
+        min-width: 104px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        position: relative;
+        font-size: 12.5px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .step::before {
+        content: "";
+        position: absolute;
+        top: 13px;
+        left: -50%;
+        width: 100%;
+        height: 2px;
+        background: var(--line);
+        z-index: 0;
+      }
+      .step:first-child::before {
+        display: none;
+      }
+      .step .node {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid var(--line);
+        background: var(--panel);
+        display: grid;
+        place-items: center;
+        z-index: 1;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .step.active .node {
+        border-color: var(--accent);
+        color: var(--accent);
+        animation: pulse 1s ease-in-out infinite;
+      }
+      .step.pass .node {
+        background: var(--pass);
+        border-color: var(--pass);
+        color: #fff;
+      }
+      .step.fail .node {
+        background: var(--fail);
+        border-color: var(--fail);
+        color: #fff;
+      }
+      .step.pass,
+      .step.fail,
+      .step.active {
+        color: var(--ink);
+      }
+      @keyframes pulse {
+        50% {
+          box-shadow: 0 0 0 6px
+            color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .step.active .node {
+          animation: none;
+        }
+      }
+
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .card > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 16px;
+        font: 700 15px var(--f-head);
+      }
+      .card > summary::-webkit-details-marker {
+        display: none;
+      }
+      .card > summary::after {
+        content: "+";
+        margin-left: auto;
+        color: var(--muted);
+        font: 400 18px var(--f-body);
+      }
+      .card[open] > summary::after {
+        content: "–";
+      }
+      .card[open] > summary {
+        border-bottom: 1px solid var(--line);
+      }
+      .pill {
+        font: 600 12px var(--f-body);
+        padding: 2px 9px;
+        border-radius: 99px;
+      }
+      .pill.pass {
+        background: var(--pass-bg);
+        color: var(--pass);
+      }
+      .pill.fail {
+        background: var(--fail-bg);
+        color: var(--fail);
+      }
+      .pill.sev-High {
+        background: var(--fail-bg);
+        color: var(--fail);
+      }
+      .pill.sev-Medium {
+        background: var(--warn-bg);
+        color: var(--warn);
+      }
+      .pill.sev-Low {
+        background: var(--pass-bg);
+        color: var(--pass);
+      }
+      .pill.type {
+        background: color-mix(in srgb, var(--accent) 14%, transparent);
+        color: var(--accent);
+      }
+      .body {
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 4px 14px;
+        font-size: 14px;
+      }
+      .kv dt {
+        color: var(--muted);
+      }
+      .kv dd {
+        margin: 0;
+      }
+      .lbl {
+        font: 600 12.5px var(--f-body);
+        color: var(--muted);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .lbl button {
+        margin-left: auto;
+      }
+      .mini {
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 5px;
+        padding: 2px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .mini:hover {
+        color: var(--ink);
+      }
+      pre.code {
+        margin: 0;
+        background: var(--code-bg);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 10px 0;
+        font: 12.5px/1.6 var(--f-code);
+        overflow: auto;
+        max-height: 340px;
+      }
+      pre.code .ln {
+        display: block;
+        padding: 0 14px;
+        white-space: pre;
+      }
+      pre.code .ln.hl {
+        background: var(--hl);
+      }
+      pre.code .ln.add {
+        background: var(--add);
+      }
+      pre.code .ln.del {
+        background: var(--del);
+      }
+      pre.code .ln i {
+        font-style: normal;
+        color: var(--muted);
+        display: inline-block;
+        width: 2.4em;
+        user-select: none;
+      }
+      pre.out {
+        margin: 0;
+        padding: 10px 14px;
+        border-radius: 7px;
+        background: var(--code-bg);
+        border: 1px solid var(--line);
+        font: 12.5px/1.55 var(--f-code);
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 220px;
+        overflow: auto;
+      }
+      pre.out.err {
+        border-color: var(--fail);
+        background: var(--fail-bg);
+      }
+      .tabs {
+        display: flex;
+        gap: 4px;
+      }
+      .tabs button {
+        border: 1px solid var(--line);
+        background: transparent;
+        border-radius: 6px;
+        padding: 3px 10px;
+        font-size: 12.5px;
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .tabs button[aria-pressed="true"] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+      }
+
+      .hist {
+        padding: 8px 16px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .hist button {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        text-align: left;
+        border: 1px solid var(--line);
+        background: var(--code-bg);
+        padding: 8px 10px;
+        border-radius: 7px;
+        cursor: pointer;
+      }
+      .hist button:hover {
+        border-color: var(--accent);
+      }
+      .hist code {
+        font: 12px var(--f-code);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+      }
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--ink);
+        color: var(--bg);
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+      }
+      .toast.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <svg
+          viewBox="0 0 32 32"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          aria-hidden="true"
+          style="color: var(--accent)"
+        >
+          <circle cx="13" cy="13" r="8.5" />
+          <path d="M19.5 19.5 28 28" />
+          <ellipse cx="13" cy="14" rx="2.6" ry="3.4" />
+          <path
+            d="M13 10.6V8.5M10.4 12.4 8.6 11.2M15.6 12.4l1.8-1.2M10.4 15.8l-1.8 1.2M15.6 15.8l1.8 1.2"
+          />
+        </svg>
+        <h1>Bug Detective</h1>
+      </div>
+      <label
+        class="conn"
+        title="Address of the FastAPI /debug endpoint from the notebook"
+      >
+        <input
+          id="apiKey"
+          type="password"
+          placeholder="API key"
+          aria-label="API key"
+          autocomplete="off"
+          spellcheck="false"
+          style="
+            width: 150px;
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: var(--code-bg);
+            font: 13px var(--f-code);
+          "
+        />
+        <span class="dot" id="dot"></span>
+        <span id="connLabel">API</span>
+        <input
+          id="apiUrl"
+          type="url"
+          value="http://127.0.0.1:8001/debug"
+          aria-label="API endpoint URL"
+          spellcheck="false"
+        />
+      </label>
+      <button
+        class="icon-btn"
+        id="demoBtn"
+        aria-pressed="false"
+        title="Use built-in sample result instead of the API"
+      >
+        Demo mode: off
+      </button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode">
+        Theme
+      </button>
+    </header>
+
+    <main>
+      <section class="panel" aria-labelledby="inTitle">
+        <div class="panel-head">
+          <h2 id="inTitle">Code to investigate</h2>
+          <select class="sel" id="samples" aria-label="Load a sample">
+            <option value="">Load a sample…</option>
+            <option value="avg">Division by zero</option>
+            <option value="idx">Index out of range</option>
+            <option value="name">Undefined variable</option>
+            <option value="type">Mixed types</option>
+            <option value="ok">No bug</option>
+          </select>
+        </div>
+        <div class="editor">
+          <div class="gutter" id="gutter">1</div>
+          <textarea
+            id="code"
+            spellcheck="false"
+            aria-label="Python code"
+            placeholder="Paste Python code that crashes…"
+          ></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="runBtn">Investigate</button>
+          <button class="btn" id="clearBtn">Clear</button>
+          <span class="hint" id="count">0 / 20,000 characters</span>
+        </div>
+      </section>
+
+      <section id="results" aria-live="polite">
+        <div class="panel empty" id="empty">
+          <h3>Nothing investigated yet</h3>
+          <p>
+            Paste Python code on the left, or pick a sample, then select
+            Investigate.<br />
+            The code is run, the bug is diagnosed, a fix is written, and both
+            are tested.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <section style="padding: 0 28px 40px" id="histWrap" hidden>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Past investigations</h2>
+          <button class="mini" id="clearHist">Clear history</button>
+        </div>
+        <div class="hist" id="hist"></div>
+      </div>
+    </section>
+
+    <div class="toast" id="toast" role="status"></div>
+
+    <script>
+      const $ = (s) => document.querySelector(s);
+      // Always send these headers to the API
+      const apiHeaders = () => ({
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true", // skips ngrok's warning page
+        "X-API-Key": $("#apiKey")?.value || "", // shared secret (see Security below)
+      });
+
+      // Accepts either the base URL or the full /debug URL
+      function endpoint() {
+        let u = $("#apiUrl").value.trim().replace(/\/+$/, "");
+        if (!u.endsWith("/debug")) u += "/debug";
+        return u;
+      }
+      const SAMPLES = {
+        avg: `def calculate_average(numbers):
+    total = sum(numbers)
+    return total / len(numbers)
+
+numbers = []
+print(calculate_average(numbers))
+`,
+        idx: `def get_last(items):
+    return items[len(items)]
+
+print(get_last([1, 2, 3]))
+`,
+        name: `def greet(name):
+    message = "Hello, " + nam
+    return message
+
+print(greet("Ada"))
+`,
+        type: `def add_totals(a, b):
+    return a + b
+
+print(add_totals("5", 10))
+`,
+        ok: `def square(n):
+    return n * n
+
+print(square(4))
+`,
+      };
+      const STAGES = [
+        ["Run code"],
+        ["Diagnose"],
+        ["Reproduce"],
+        ["Fix"],
+        ["Verify"],
+      ];
+      let demo = false,
+        last = null,
+        busy = false,
+        timer = null;
+
+      /* ---------- editor ---------- */
+      const code = $("#code"),
+        gutter = $("#gutter");
+      function syncGutter() {
+        const n = code.value.split("\n").length;
+        gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join(
+          "\n",
+        );
+        gutter.scrollTop = code.scrollTop;
+        $("#count").textContent =
+          code.value.length.toLocaleString() + " / 20,000 characters";
+      }
+      code.addEventListener("input", syncGutter);
+      code.addEventListener(
+        "scroll",
+        () => (gutter.scrollTop = code.scrollTop),
+      );
+      code.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault();
+          document.execCommand("insertText", false, "    ");
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+          e.preventDefault();
+          investigate();
+        }
+      });
+      $("#samples").addEventListener("change", (e) => {
+        if (SAMPLES[e.target.value]) {
+          code.value = SAMPLES[e.target.value];
+          syncGutter();
+        }
+        e.target.value = "";
+      });
+      $("#clearBtn").onclick = () => {
+        code.value = "";
+        syncGutter();
+        code.focus();
+      };
+      code.value = SAMPLES.avg;
+      syncGutter();
+
+      /* ---------- theme / demo / api ---------- */
+      $("#themeBtn").onclick = () => {
+        const dark =
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--bg")
+            .trim() === "#10141d";
+        document.documentElement.dataset.theme = dark ? "light" : "dark";
+      };
+      $("#demoBtn").onclick = () => {
+        demo = !demo;
+        $("#demoBtn").textContent = "Demo mode: " + (demo ? "on" : "off");
+        $("#demoBtn").setAttribute("aria-pressed", demo);
+        if (demo) setDot("", "Demo");
+        else {
+          setDot("", "API");
+          ping();
+        }
+      };
+      function setDot(state, label) {
+        $("#dot").className = "dot " + state;
+        $("#connLabel").textContent = label || "API";
+      }
+      async function ping() {
+        if (demo) return;
+        try {
+          const base = new URL(endpoint());
+          const r = await fetch(base.origin + "/health", {
+            headers: apiHeaders(),
+          });
+          setDot(r.ok ? "ok" : "bad", r.ok ? "Connected" : "API");
+        } catch {
+          setDot("bad", "Offline");
+        }
+      }
+      $("#apiUrl").addEventListener("change", ping);
+      ping();
+
+      /* ---------- helpers ---------- */
+      function esc(s) {
+        return String(s ?? "").replace(
+          /[&<>"]/g,
+          (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c],
+        );
+      }
+      function toast(msg) {
+        const t = $("#toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 1600);
+      }
+      function codeBlock(text, { hl } = {}) {
+        return `<pre class="code">${String(text || "")
+          .split("\n")
+          .map(
+            (l, i) =>
+              `<span class="ln${hl === i + 1 ? " hl" : ""}"><i>${i + 1}</i>${esc(l) || " "}</span>`,
+          )
+          .join("")}</pre>`;
+      }
+      function diffLines(a, b) {
+        const A = a.split("\n"),
+          B = b.split("\n"),
+          m = A.length,
+          n = B.length;
+        const dp = Array.from({ length: m + 1 }, () =>
+          new Array(n + 1).fill(0),
+        );
+        for (let i = m - 1; i >= 0; i--)
+          for (let j = n - 1; j >= 0; j--)
+            dp[i][j] =
+              A[i] === B[j]
+                ? dp[i + 1][j + 1] + 1
+                : Math.max(dp[i + 1][j], dp[i][j + 1]);
+        const out = [];
+        let i = 0,
+          j = 0;
+        while (i < m && j < n) {
+          if (A[i] === B[j]) {
+            out.push([" ", A[i]]);
+            i++;
+            j++;
+          } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+            out.push(["-", A[i++]]);
+          } else out.push(["+", B[j++]]);
+        }
+        while (i < m) out.push(["-", A[i++]]);
+        while (j < n) out.push(["+", B[j++]]);
+        return `<pre class="code">${out
+          .map(
+            ([t, l]) =>
+              `<span class="ln ${t === "+" ? "add" : t === "-" ? "del" : ""}"><i>${t === " " ? "" : t}</i>${esc(l) || " "}</span>`,
+          )
+          .join("")}</pre>`;
+      }
+      function exec(label, ex) {
+        if (!ex) return "";
+        return `<div><div class="lbl">${label}
+      <span class="pill ${ex.success ? "pass" : "fail"}">${ex.success ? "Passed" : "Failed"}</span></div>
+    ${ex.output ? `<pre class="out">${esc(ex.output)}</pre>` : ""}
+${ex.error ? `<pre class="out${ex.success ? "" : " err"}">${esc(ex.error)}</pre>` : ""}
+    ${!ex.output && !ex.error ? `<pre class="out">(no output)</pre>` : ""}</div>`;
+      }
+
+      /* ---------- render ---------- */
+      function stepStates(r) {
+        const s = ["", "", "", "", ""];
+        s[0] = r.original_execution ? "pass" : "";
+        if (r.bug_report) s[1] = "pass";
+        if (r.reproduction_execution)
+          s[2] = r.reproduction_execution.success ? "pass" : "fail";
+        if (r.fixed_execution)
+          s[3] = r.fixed_execution.success ? "pass" : "fail";
+        if (r.regression_execution)
+          s[4] = r.regression_execution.success ? "pass" : "fail";
+        return s;
+      }
+      function track(states) {
+        return `<div class="panel track" role="list">${STAGES.map(
+          ([n], i) =>
+            `<div class="step ${states[i]}" role="listitem"><div class="node">${states[i] === "pass" ? "✓" : states[i] === "fail" ? "✕" : states[i] === "active" ? "…" : i + 1}</div>${n}</div>`,
+        ).join("")}</div>`;
+      }
+      function render(r, src) {
+        last = { r, src };
+        const b = r.bug_report,
+          f = r.fix_report;
+        const ok = r.verification_passed,
+          noBug = !b;
+        const cls = noBug ? "info" : ok ? "pass" : "fail";
+        const head = noBug
+          ? "No crash found"
+          : ok
+            ? "Bug found and fixed"
+            : "Bug found, fix needs a look";
+        const sub = noBug
+          ? "The code ran without a runtime error, so there was nothing to diagnose."
+          : esc(r.status);
+        let h = `<div class="banner ${cls}"><div><strong>${head}</strong><span>${sub}</span></div>
+    <div class="tools"><button class="btn" id="exportBtn">Export JSON</button></div></div>`;
+        h += track(stepStates(r));
+
+        h += `<details class="card" open><summary>Original run
+    <span class="pill ${r.original_execution.success ? "pass" : "fail"}">${r.original_execution.success ? "Passed" : "Crashed"}</span></summary>
+    <div class="body">${codeBlock(src, { hl: b ? +b.line : 0 })}${exec("Output", r.original_execution)}</div></details>`;
+
+        if (b) {
+          h += `<details class="card" open><summary>Diagnosis
+      <span class="pill type">${esc(b.bug_type)}</span><span class="pill sev-${esc(b.severity)}">${esc(b.severity)} severity</span></summary>
+      <div class="body"><dl class="kv">
+        <dt>Error</dt><dd><code>${esc(b.error)}</code></dd>
+        <dt>Line</dt><dd>${esc(b.line)}</dd>
+        <dt>Root cause</dt><dd>${esc(b.root_cause)}</dd>
+        <dt>Explanation</dt><dd>${esc(b.explanation)}</dd>
+        <dt>Suggested fix</dt><dd>${esc(b.suggested_fix)}</dd></dl></div></details>`;
+        }
+        if (r.reproduction_test) {
+          h += `<details class="card"><summary>Reproduction test
+      <span class="pill ${r.reproduction_execution?.success ? "pass" : "fail"}">${r.reproduction_execution?.success ? "Reproduced bug" : "Failed"}</span></summary>
+      <div class="body"><div>${esc(r.reproduction_test.test_description)}</div>
+      <div><div class="lbl">Test code<button class="mini" data-copy="repro">Copy</button></div>${codeBlock(r.reproduction_test.test_code)}</div>
+      ${exec("Result", r.reproduction_execution)}</div></details>`;
+        }
+        if (f) {
+          h += `<details class="card" open><summary>Fix
+      <span class="pill ${r.fixed_execution?.success ? "pass" : "fail"}">${r.fixed_execution?.success ? "Runs cleanly" : "Still failing"}</span></summary>
+      <div class="body"><div>${esc(f.fix_explanation)}</div>
+      <div><div class="lbl">Code
+        <span class="tabs" role="group" aria-label="Fix view">
+          <button aria-pressed="true" data-view="diff">Changes</button><button aria-pressed="false" data-view="full">Fixed code</button></span>
+        <button class="mini" data-copy="fix" style="margin-left:0">Copy fixed code</button></div>
+        <div id="fixView">${diffLines(src.replace(/\n$/, ""), f.fixed_code.replace(/\n$/, ""))}</div></div>
+      ${exec("Fixed code output", r.fixed_execution)}</div></details>`;
+        }
+        if (r.regression_test) {
+          h += `<details class="card"><summary>Regression test
+      <span class="pill ${r.regression_execution?.success ? "pass" : "fail"}">${r.regression_execution?.success ? "Passed" : "Failed"}</span></summary>
+      <div class="body"><div>${esc(r.regression_test.test_description)}</div>
+      <div><div class="lbl">Test code<button class="mini" data-copy="reg">Copy</button></div>${codeBlock(r.regression_test.test_code)}</div>
+      ${exec("Result", r.regression_execution)}</div></details>`;
+        }
+        $("#results").innerHTML = h;
+
+        $("#exportBtn").onclick = () => {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(
+            new Blob([JSON.stringify(r, null, 2)], {
+              type: "application/json",
+            }),
+          );
+          a.download = "bug-report.json";
+          a.click();
+        };
+        document.querySelectorAll("[data-copy]").forEach(
+          (btn) =>
+            (btn.onclick = () => {
+              const t = {
+                repro: r.reproduction_test?.test_code,
+                fix: f?.fixed_code,
+                reg: r.regression_test?.test_code,
+              }[btn.dataset.copy];
+              navigator.clipboard
+                .writeText(t || "")
+                .then(() => toast("Copied"));
+            }),
+        );
+        document.querySelectorAll("[data-view]").forEach(
+          (btn) =>
+            (btn.onclick = () => {
+              document
+                .querySelectorAll("[data-view]")
+                .forEach((x) => x.setAttribute("aria-pressed", x === btn));
+              $("#fixView").innerHTML =
+                btn.dataset.view === "diff"
+                  ? diffLines(
+                      src.replace(/\n$/, ""),
+                      f.fixed_code.replace(/\n$/, ""),
+                    )
+                  : codeBlock(f.fixed_code);
+            }),
+        );
+      }
+      function renderError(msg) {
+        $("#results").innerHTML =
+          `<div class="banner fail"><div><strong>Investigation failed</strong><span>${esc(msg)}</span></div></div>`;
+      }
+
+      /* ---------- progress (the API is one call, so stages advance on a timer) ---------- */
+      function startProgress() {
+        let i = 0;
+        const draw = () => {
+          const st = STAGES.map((_, k) =>
+            k < i ? "pass" : k === i ? "active" : "",
+          );
+          $("#results").innerHTML =
+            `<div class="banner info"><div><strong>Investigating…</strong>
+      <span>The model writes each step in turn, so this can take a few minutes.</span></div></div>` +
+            track(st);
+        };
+        draw();
+        timer = setInterval(() => {
+          if (i < STAGES.length - 1) {
+            i++;
+            draw();
+          }
+        }, 7000);
+      }
+      function stopProgress() {
+        clearInterval(timer);
+      }
+
+      /* ---------- run ---------- */
+      async function investigate() {
+        if (busy) return;
+        const src = code.value;
+        if (!src.trim()) {
+          toast("Paste some Python code first");
+          return;
+        }
+        if (src.length > 20000) {
+          toast("Code is over 20,000 characters");
+          return;
+        }
+        busy = true;
+        $("#runBtn").disabled = true;
+        $("#runBtn").textContent = "Investigating…";
+        startProgress();
+        try {
+          let data;
+          if (demo) {
+            await new Promise((r) => setTimeout(r, 2200));
+            data = demoResult(src);
+          } else {
+            const res = await fetch(endpoint(), {
+              method: "POST",
+              headers: apiHeaders(),
+              body: JSON.stringify({ code: src }),
+            });
+            if (!res.ok) {
+              let d = "";
+              try {
+                d = (await res.json()).detail;
+              } catch {}
+              if (Array.isArray(d)) d = d.map((x) => x.msg).join("; ");
+              if (res.status === 401) d = "Wrong or missing API key.";
+              throw new Error(
+                d || `The server answered with status ${res.status}.`,
+              );
+            }
+            data = await res.json();
+            setDot("ok", "Connected");
+          }
+          stopProgress();
+          render(data, src);
+          save(src, data);
+        } catch (e) {
+          stopProgress();
+          setDot("bad", "Offline");
+          renderError(
+            e instanceof TypeError
+              ? "Could not reach the API. Start the notebook server (port 8001), check the URL in the header, or turn on demo mode."
+              : e.message,
+          );
+        } finally {
+          busy = false;
+          $("#runBtn").disabled = false;
+          $("#runBtn").textContent = "Investigate";
+        }
+      }
+      $("#runBtn").onclick = investigate;
+
+      /* ---------- demo data (matches the notebook's calculate_average example) ---------- */
+      function demoResult(src) {
+        if (!/len\(numbers\)/.test(src)) {
+          return {
+            status: "No runtime error detected",
+            original_execution: { success: true, output: "16\n", error: "" },
+          };
+        }
+        const fixed = `def calculate_average(numbers):
+    if not numbers:
+        return None
+    total = sum(numbers)
+    return total / len(numbers)
+
+numbers = []
+print(calculate_average(numbers))
+`;
+        return {
+          status: "Fix verified: all checks passed",
+          verification_passed: true,
+          original_execution: {
+            success: false,
+            output: "",
+            error:
+              'Traceback (most recent call last):\n  File "main.py", line 7, in <module>\n    print(calculate_average(numbers))\n  File "main.py", line 4, in calculate_average\n    return total / len(numbers)\nZeroDivisionError: division by zero',
+          },
+          bug_report: {
+            bug_type: "Runtime Error",
+            severity: "High",
+            line: 4,
+            error: "ZeroDivisionError",
+            root_cause:
+              "The function divides by len(numbers) without checking for an empty list.",
+            explanation:
+              "With an empty list, len(numbers) is 0, and dividing by zero raises ZeroDivisionError.",
+            suggested_fix:
+              "Return None when the list is empty before dividing.",
+          },
+          reproduction_test: {
+            test_description:
+              "Calls calculate_average with an empty list and expects ZeroDivisionError.",
+            test_code: `import unittest\n\ndef calculate_average(numbers):\n    total = sum(numbers)\n    return total / len(numbers)\n\nclass TestBug(unittest.TestCase):\n    def test_empty_list(self):\n        with self.assertRaises(ZeroDivisionError):\n            calculate_average([])\n\nif __name__ == "__main__":\n    unittest.main()`,
+            expected_error: "ZeroDivisionError",
+          },
+          reproduction_execution: {
+            success: true,
+            output: "",
+            error: "." + "\n" + "-".repeat(70) + "\nRan 1 test in 0.000s\n\nOK",
+          },
+          fix_report: {
+            fix_explanation:
+              "Added a guard that returns None for an empty list, so the division never runs with a zero divisor.",
+            fixed_code: fixed,
+          },
+          fixed_execution: { success: true, output: "None\n", error: "" },
+          regression_test: {
+            test_description:
+              "Checks that an empty list returns None and a normal list still averages correctly.",
+            test_code: `import unittest\n\ndef calculate_average(numbers):\n    if not numbers:\n        return None\n    total = sum(numbers)\n    return total / len(numbers)\n\nclass TestFix(unittest.TestCase):\n    def test_empty(self):\n        self.assertIsNone(calculate_average([]))\n    def test_normal(self):\n        self.assertEqual(calculate_average([2, 4, 6]), 4.0)\n\nif __name__ == "__main__":\n    unittest.main()`,
+          },
+          regression_execution: {
+            success: true,
+            output: "",
+            error:
+              ".." + "\n" + "-".repeat(70) + "\nRan 2 tests in 0.000s\n\nOK",
+          },
+        };
+      }
+
+      /* ---------- history ---------- */
+      function loadHist() {
+        try {
+          return JSON.parse(localStorage.getItem("bd_hist") || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function save(src, r) {
+        const h = loadHist();
+        h.unshift({ t: Date.now(), src, r });
+        try {
+          localStorage.setItem("bd_hist", JSON.stringify(h.slice(0, 10)));
+        } catch {}
+        drawHist();
+      }
+      function drawHist() {
+        const h = loadHist();
+        $("#histWrap").hidden = !h.length;
+        $("#hist").innerHTML = h
+          .map((x, i) => {
+            const st = !x.r.bug_report
+              ? "pill type"
+              : x.r.verification_passed
+                ? "pill pass"
+                : "pill fail";
+            const lb = !x.r.bug_report
+              ? "No crash"
+              : x.r.verification_passed
+                ? "Fixed"
+                : "Unverified";
+            return `<button data-i="${i}"><span class="${st}">${lb}</span><code>${esc(x.src.trim().split("\n")[0])}</code>
+      <small style="color:var(--muted)">${new Date(x.t).toLocaleString()}</small></button>`;
+          })
+          .join("");
+        document.querySelectorAll("#hist button").forEach(
+          (b) =>
+            (b.onclick = () => {
+              const x = loadHist()[b.dataset.i];
+              code.value = x.src;
+              syncGutter();
+              render(x.r, x.src);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }),
+        );
+      }
+      $("#clearHist").onclick = () => {
+        try {
+          localStorage.removeItem("bd_hist");
+        } catch {}
+        drawHist();
+      };
+      drawHist();
+    </script>
+  </body>
+</html>
