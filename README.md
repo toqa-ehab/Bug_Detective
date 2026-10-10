@@ -116,8 +116,6 @@ Returns `status`, `original_execution`, `bug_report`, `reproduction_test`, `repr
 
 ![Bug Detective UI: a successful investigation](screenshots/success.png)
 
-![Diagnosis and fix diff](screenshots/fix-diff.png)
-
 ---
 
 # 📈 Results
